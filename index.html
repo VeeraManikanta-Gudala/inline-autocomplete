@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Subject + Smart Completion</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f9f9f9;
+      padding: 2rem;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      max-width: 600px;
+      padding: 0.8rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      border-radius: 4px;
+    }
+
+    .wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .ghost-input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: #ccc;
+      pointer-events: none;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      padding: 1rem;
+      font-size: 1rem;
+      font-family: inherit;
+      line-height: 1.5;
+      width: 100%;
+      height: 200px;
+      box-sizing: border-box;
+      border: 1px solid transparent;
+    }
+
+    textarea {
+      position: relative;
+      background: transparent;
+      color: black;
+      font-size: 1rem;
+      line-height: 1.5;
+      font-family: inherit;
+      width: 100%;
+      height: 200px;
+      padding: 1rem;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      resize: none;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Smart Message Composer 💌</h2>
+
+<label for="subject">Subject</label>
+<input type="text" id="subject" placeholder="e.g. Apologizing to friend">
+
+<label for="realInput">Content</label>
+<div class="wrapper">
+  <div class="ghost-input" id="ghostText"></div>
+  <textarea id="realInput" placeholder="Start typing your message..."></textarea>
+</div>
+
+<script>
+  const realInput = document.getElementById('realInput');
+  const ghostText = document.getElementById('ghostText');
+  const subjectInput = document.getElementById('subject');
+  let suggestion = '';
+
+  function escapeHTML(text) {
+    return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  async function getSuggestion(subject, content) {
+    try {
+      const fullPrompt = `${subject.trim()}\n${content}`;
+      const res = await fetch('http://localhost:3000/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inputs: fullPrompt,
+          parameters: {
+            max_new_tokens: 6,
+            return_full_text: true
+          }
+        })
+      });
+
+      const data = await res.json();
+      const full = data?.[0]?.generated_text || '';
+      suggestion = full.slice(fullPrompt.length).split(/\s+/).slice(0, 2).join(' ');
+      updateGhost();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function updateGhost() {
+    ghostText.innerHTML = escapeHTML(realInput.value) + `<span style="color:#ccc">${escapeHTML(suggestion)}</span>`;
+  }
+
+  realInput.addEventListener('input', () => {
+    updateGhost();
+    const subject = subjectInput.value.trim();
+    const content = realInput.value.trim();
+    if (subject && content) getSuggestion(subject, content);
+  });
+
+  realInput.addEventListener('keydown', (e) => {
+    if ((e.key === 'Tab' || e.key === 'Enter') && suggestion) {
+      e.preventDefault();
+      realInput.value += suggestion.startsWith(" ") ? suggestion : " " + suggestion;
+      suggestion = '';
+      updateGhost();
+    }
+  });
+</script>
+
+</body>
+</html>
