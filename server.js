@@ -1,3 +1,4 @@
+
 // server.js
 import express from 'express';
 import cors from 'cors';
@@ -7,7 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const HF_TOKEN = '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';
+
+
+const HF_TOKEN = '';
 
 app.post('/suggest', async (req, res) => {
   try {
