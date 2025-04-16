@@ -92,7 +92,9 @@
 
   async function getSuggestion(subject, content) {
     try {
-      const fullPrompt = `${subject.trim()}\n${content}`;
+      const fullPrompt = `Context: ${subject.trim()}
+User input: ${content.trim()}
+LLM suggestion:`;
       const res = await fetch('http://localhost:3000/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
